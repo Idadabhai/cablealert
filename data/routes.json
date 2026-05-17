@@ -1,0 +1,64 @@
+[
+  {
+    "id": "london-new-york",
+    "label": "London ↔ New York",
+    "short": "LON-NYC",
+    "latency_benchmark_ms": 65,
+    "alert_threshold_ms": 80,
+    "trading_relevance": "HFT, FX, Equities, Crypto",
+    "cables": ["marea", "hibernia-express", "aeconnect-1", "tat-14"],
+    "coord_from": [-0.1276, 51.5074],
+    "coord_to": [-74.0059, 40.7128],
+    "risk_level": "medium"
+  },
+  {
+    "id": "london-singapore",
+    "label": "London ↔ Singapore",
+    "short": "LON-SIN",
+    "latency_benchmark_ms": 160,
+    "alert_threshold_ms": 200,
+    "trading_relevance": "FX, Asian Equities, Commodities",
+    "cables": ["seamewe-5", "eig", "flag-falcon"],
+    "coord_from": [-0.1276, 51.5074],
+    "coord_to": [103.8198, 1.3521],
+    "risk_level": "high",
+    "risk_note": "Red Sea Houthi activity since 2024 makes this route volatile"
+  },
+  {
+    "id": "london-tokyo",
+    "label": "London ↔ Tokyo",
+    "short": "LON-TKY",
+    "latency_benchmark_ms": 230,
+    "alert_threshold_ms": 280,
+    "trading_relevance": "Nikkei, JPY FX, Asian Equities",
+    "cables": ["faster", "jupiter"],
+    "coord_from": [-0.1276, 51.5074],
+    "coord_to": [139.6917, 35.6895],
+    "risk_level": "low"
+  },
+  {
+    "id": "new-york-sao-paulo",
+    "label": "New York ↔ São Paulo",
+    "short": "NYC-SAO",
+    "latency_benchmark_ms": 120,
+    "alert_threshold_ms": 150,
+    "trading_relevance": "Crypto arbitrage, Bovespa, BRL FX",
+    "cables": ["monet"],
+    "coord_from": [-74.0059, 40.7128],
+    "coord_to": [-46.6333, -23.5505],
+    "risk_level": "low"
+  },
+  {
+    "id": "london-dubai",
+    "label": "London ↔ Dubai",
+    "short": "LON-DXB",
+    "latency_benchmark_ms": 110,
+    "alert_threshold_ms": 140,
+    "trading_relevance": "Gulf markets, Oil, Commodities",
+    "cables": ["seamewe-5", "eig"],
+    "coord_from": [-0.1276, 51.5074],
+    "coord_to": [55.2708, 25.2048],
+    "risk_level": "high",
+    "risk_note": "Red Sea routing"
+  }
+]

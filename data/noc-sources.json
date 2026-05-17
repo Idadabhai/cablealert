@@ -1,0 +1,61 @@
+[
+  {
+    "id": "subtelforum",
+    "name": "SubTel Forum",
+    "url": "https://subtelforum.com/news/",
+    "method": "cheerio",
+    "selector": "article.post",
+    "headline_selector": "h2.entry-title a",
+    "body_selector": "div.entry-content p",
+    "date_selector": "time.entry-date",
+    "frequency_minutes": 15,
+    "active": true,
+    "notes": "Primary source for subsea cable news. Covers repair ships, fault reports, maintenance windows."
+  },
+  {
+    "id": "thousandeyes",
+    "name": "ThousandEyes Internet Outages",
+    "url": "https://www.thousandeyes.com/outages/",
+    "method": "cheerio",
+    "selector": "div[class*='outage']",
+    "headline_selector": "[class*='title']",
+    "body_selector": "[class*='description']",
+    "date_selector": "[class*='timestamp']",
+    "frequency_minutes": 15,
+    "active": true,
+    "notes": "Monitors ISP and network outages globally. Good for detecting route degradation."
+  },
+  {
+    "id": "twitter",
+    "name": "X / Twitter Search",
+    "query": "\"subsea cable\" (cut OR fault OR outage OR repair OR severed) -is:retweet lang:en",
+    "method": "twitter-api-v2",
+    "frequency_minutes": 15,
+    "min_retweets": 3,
+    "active": true,
+    "notes": "Real-time social signal. Filter noise with min_retweets. Watch for ship crew posts, NOC engineers."
+  },
+  {
+    "id": "kentik",
+    "name": "Kentik Network Outage Map",
+    "url": "https://www.kentik.com/resources/internet-outages/",
+    "method": "cheerio",
+    "selector": "div[class*='outage']",
+    "headline_selector": "h3",
+    "body_selector": "p",
+    "date_selector": "time",
+    "frequency_minutes": 30,
+    "active": false,
+    "notes": "Activate when Kentik page structure is confirmed. Slower cadence due to page complexity."
+  },
+  {
+    "id": "ripe-stat",
+    "name": "RIPE NCC BGP Anomalies",
+    "url": "https://stat.ripe.net/widget/bgplay",
+    "method": "api",
+    "api_endpoint": "https://stat.ripe.net/data/bgp-state/data.json",
+    "frequency_minutes": 15,
+    "active": false,
+    "notes": "BGP routing changes can indicate cable failures. Needs API key and prefix-specific queries. Phase 2."
+  }
+]
