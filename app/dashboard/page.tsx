@@ -76,9 +76,10 @@ export default function DashboardPage({
             <div className="w-6 h-6 rounded-full bg-red-900 border border-red-700 text-red-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</div>
             <div>
               <p className="text-sm font-medium text-white mb-2">Paste your Telegram ID below</p>
-              <form className="flex gap-2" action={async (_fd: FormData) => {
+              <form className="flex gap-2" action={async (fd: FormData) => {
                 'use server';
-                // TODO: wire to updateSubscriberTelegramId
+                // TODO: wire to updateSubscriberTelegramId server action
+                console.log('[dev] Telegram ID submitted:', fd.get('telegram_chat_id'));
               }}>
                 <input
                   type="text"
