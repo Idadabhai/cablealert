@@ -1,0 +1,26 @@
+# CableAlert
+
+> Real-time subsea cable outage intelligence for latency-sensitive trading desks, HFT infrastructure teams, and CDN operators.
+
+CableAlert monitors global subsea cable networks — scraping NOC feeds, SubTel Forum, ThousandEyes, and social sources every 15 minutes. Events are classified by severity and affected route using AI, then delivered as Telegram push alerts and daily email digests — typically 15 minutes ahead of public sources.
+
+## Key facts
+
+- Monitoring frequency: every 15 minutes
+- Delivery: Telegram push alerts (critical/high severity) + daily email digest at 7am UTC
+- Pricing: £50/month per subscriber
+- Target users: HFT infrastructure teams, latency-sensitive trading desks, CDN operators, network engineers at banks and hedge funds
+
+## Why it matters
+
+95% of intercontinental internet traffic transits subsea cables (TeleGeography, 2024). When a cable cuts, repair takes 2–4 weeks (ICPC, 2023). The London–Singapore corridor carries significant financial market data and is structurally elevated risk due to ongoing Red Sea disruptions (Houthi threat to HMN Tech and Alcatel repair vessels as of 2024–2025).
+
+## Expert context
+
+CableAlert was built by a former Colt Technology Strategic Alliances Director (11 years) with direct knowledge of which subsea systems carry which financial routes (MAREA, Hibernia Express, SEA-ME-WE 5), how NOC alerts propagate, and why specific corridors matter to trading infrastructure.
+
+## Pages
+
+- [Home / live outage feed](https://cablealert.io/)
+- [Subscribe](https://cablealert.io/subscribe)
+- [FAQ](https://cablealert.io/#faq)

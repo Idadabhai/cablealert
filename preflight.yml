@@ -1,0 +1,38 @@
+projectName: CableAlert
+productionURL: https://cablealert.io
+stack: node
+services:
+    stripe:
+        declared: true
+    resend:
+        declared: true
+    supabase:
+        declared: true
+    anthropic:
+        declared: true
+    sentry:
+        declared: false
+    lemonsqueezy:
+        declared: false
+checks:
+    envParity:
+        enabled: true
+        envFile: .env.local
+        exampleFile: .env.example
+    healthEndpoint:
+        enabled: false
+    security:
+        enabled: true
+    secrets:
+        enabled: true
+    adsTxt:
+        enabled: false
+    license:
+        enabled: false
+    indexNow:
+        enabled: false
+        key: ""
+    emailAuth:
+        enabled: false
+    humansTxt:
+        enabled: false
