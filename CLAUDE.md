@@ -232,7 +232,7 @@ Networks) when confirmed — this signals repair timeline to trading subscribers
 |---|---|
 | No GitHub remote configured | Needs user to create repo at github.com → `git remote add origin` |
 | Admin page has no auth gate | Add `ADMIN_SECRET` env check before rendering admin content |
-| Scraper error handling | `lib/scrapers/twitter.ts` needs rate-limit retry logic |
+| Scraper error handling | DONE (Session 4) — 3-attempt backoff on 429 (5s/15s/60s), Bearer Token support added |
 | Dashboard subscriber auth | DONE (Session 3) — cookie-based, /api/auth/callback route |
 
 ---
@@ -262,7 +262,7 @@ Networks) when confirmed — this signals repair timeline to trading subscribers
 4. **Twitter API** — Apply for v2 Basic tier (~$100/month). Set `TWITTER_BEARER_TOKEN`.
 5. ~~Dashboard auth~~ — DONE (Session 3). httpOnly cookie via /api/auth/callback.
 6. **First LinkedIn post** — Expert framing: "Why subsea cable cuts move markets before anyone knows"
-7. **Twitter scraper rate-limit retry** — lib/scrapers/twitter.ts needs exponential backoff on 429.
+7. ~~Twitter scraper rate-limit retry~~ — DONE (Session 4). 3-attempt backoff, Bearer Token support.
 
 ### ✅ Completed in Session 1 (16 May 2026)
 
