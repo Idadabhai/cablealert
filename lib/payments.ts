@@ -1,4 +1,4 @@
-// lib/payments.ts — Stripe subscriptions for CableAlert Pro (£50/month)
+﻿// lib/payments.ts — Stripe subscriptions for CableAlert Pro (£50/month)
 // Never call Stripe SDK from components — always use this lib
 
 import Stripe from 'stripe';
@@ -18,7 +18,7 @@ export async function createCheckoutSession(email?: string): Promise<string> {
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${APP_URL}/api/auth/callback?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${APP_URL}/subscribe`,
     ...(email ? { customer_email: email } : {}),
     billing_address_collection: 'auto',
@@ -29,6 +29,18 @@ export async function createCheckoutSession(email?: string): Promise<string> {
   });
 
   return session.url!;
+}
+
+// ── Retrieve Checkout Session (used by auth callback) ──────
+
+export async function getCheckoutSession(
+  sessionId: string
+): Promise<Stripe.Checkout.Session | null> {
+  try {
+    return await stripe.checkout.sessions.retrieve(sessionId);
+  } catch {
+    return null;
+  }
 }
 
 // ── Customer Portal ─────────────────────────────────────────

@@ -85,6 +85,17 @@ export async function updateSubscriberTelegramId(
   if (error) throw new Error(`updateSubscriberTelegramId: ${error.message}`);
 }
 
+export async function getSubscriberById(id: string): Promise<Subscriber | null> {
+  const db = getServerClient();
+  const { data, error } = await db
+    .from('subscribers')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data ?? null;
+}
+
 export async function cancelSubscriber(email: string): Promise<void> {
   const db = getServerClient();
   const { error } = await db
