@@ -3,6 +3,9 @@
 Read this file first, every session. It is the working memory for this codebase.
 The CHANGELOG.md is the audit trail.
 
+@C:\Windows\Personal\Business\CLAUDE_PAYMENTS.md
+@C:\Windows\Personal\Business\CLAUDE_DISTRIBUTION.md
+
 ---
 
 ## Product in one paragraph
@@ -157,6 +160,72 @@ Both crons require `Authorization: Bearer ${CRON_SECRET}` header. Vercel passes 
 
 ---
 
+## Subsea Cable Intelligence (inform scraper targets, AI prompts, and alert copy)
+
+### Priority NOC Sources to scrape (public feeds)
+
+| Source | URL | Type |
+|---|---|---|
+| TeleGeography Cable Map | telegeography.com/resources/submarine-cable-map | Definitive cable database |
+| Kentik Internet Outage | kentik.com/resources/internet-outages | Real-time BGP/routing |
+| ThousandEyes Internet Outage | thousandeyes.com/outages | Route measurement data |
+| RIPE NCC routing data | stat.ripe.net | BGP anomaly detection |
+| SubTel Forum news | subtelforum.com/news | Industry news + repair reports |
+| Twitter/X | search: "subsea cable cut OR outage OR fault" | Real-time social signal |
+
+Founder context: NOC alerts propagate from carrier networks to public sources with a 10–20 minute
+lag to Twitter. CableAlert's scrape-and-classify loop runs every 15 minutes — this is the competitive
+moat. Financial subscribers act on this 15-minute window.
+
+### High-Priority Cable Systems (by trading route sensitivity)
+
+**London → New York** (Atlantic)
+- Systems: TAT-14, MAREA, AEConnect-1, Hibernia Express
+- Latency benchmark: ~65ms | Alert threshold: >80ms
+- Subscriber segment: Crypto traders + FX/equity desks
+
+**London → Singapore (via Red Sea)** — ELEVATED RISK ROUTE
+- Systems: FLAG/FALCON, SEA-ME-WE-3, SEA-ME-WE-4, SEA-ME-WE-5, EIG
+- Latency benchmark: ~160ms | Alert threshold: >200ms
+- **RED SEA RISK:** Houthi activity since 2024 makes this corridor structurally volatile.
+  Rerouting via Cape of Good Hope adds ~80ms. Include this context in every alert on this route.
+- Subscriber segment: FX/equity desks (highest sensitivity), CDN operators
+
+**London → Tokyo** (Pacific)
+- Systems: FASTER, JUPITER, PC-1
+- Latency benchmark: ~230ms | Alert threshold: >280ms
+- Subscriber segment: FX/equity + crypto (Pacific exchange arbitrage)
+
+**New York → São Paulo** (Atlantic South)
+- Systems: MONET, SAm-1, Americas-II
+- Latency benchmark: ~120ms | Alert threshold: >150ms
+- Subscriber segment: Crypto traders + EM FX desks
+
+### Alert Classification (use in Claude AI prompt for severity scoring)
+
+| Severity | Trigger | Subscriber action |
+|---|---|---|
+| CRITICAL | Cable cut confirmed, no ETA for repair (weeks/months) | Immediate Telegram push to all subscribers |
+| HIGH | Partial capacity loss, rerouting in progress | Immediate Telegram push to all subscribers |
+| MEDIUM | Planned maintenance, known downtime window | Include in 7am UTC daily digest |
+| LOW | Minor degradation, within normal variance | Include in 7am UTC daily digest |
+| RESOLVED | Service restored | Push if original event was CRITICAL or HIGH |
+| NOISE | Unverified social signal, no corroboration | Log to DB, do not alert |
+
+Prompt instruction for Claude: Always include repair vessel operator (HMN Tech vs Alcatel Submarine
+Networks) when confirmed — this signals repair timeline to trading subscribers.
+
+### Subscriber Segments (inform alert filtering + copy tone)
+
+| Segment | Route focus | Alert threshold | Copy tone |
+|---|---|---|---|
+| Crypto traders | Atlantic (NY↔London) + Pacific | CRITICAL + HIGH only | Speed-focused, specific ms impact |
+| FX/Equity traders | All routes, esp. London↔Singapore | CRITICAL + HIGH + MEDIUM | Risk management language |
+| CDN operators | All routes equally | All severities | Capacity + rerouting focus |
+| Analysts/journalists | All alerts | Lower threshold — include LOW | Context-heavy, background links |
+
+---
+
 ## Known issues / next session work
 
 | Issue | Status |
@@ -164,7 +233,7 @@ Both crons require `Authorization: Bearer ${CRON_SECRET}` header. Vercel passes 
 | No GitHub remote configured | Needs user to create repo at github.com → `git remote add origin` |
 | Admin page has no auth gate | Add `ADMIN_SECRET` env check before rendering admin content |
 | Scraper error handling | `lib/scrapers/twitter.ts` needs rate-limit retry logic |
-| Dashboard subscriber auth | Currently stub — needs Stripe customer ID lookup on session |
+| Dashboard subscriber auth | DONE (Session 3) — cookie-based, /api/auth/callback route |
 
 ---
 
@@ -191,8 +260,9 @@ Both crons require `Authorization: Bearer ${CRON_SECRET}` header. Vercel passes 
 2. **Stripe product setup** — Create £50/month price in Stripe dashboard. Set `NEXT_PUBLIC_STRIPE_PRICE_ID`.
 3. **Telegram bot** — Create bot via @BotFather. Set `TELEGRAM_BOT_TOKEN`. Set webhook URL.
 4. **Twitter API** — Apply for v2 Basic tier (~$100/month). Set `TWITTER_BEARER_TOKEN`.
-5. **Dashboard auth** — Gate `/dashboard` behind Stripe customer lookup.
+5. ~~Dashboard auth~~ — DONE (Session 3). httpOnly cookie via /api/auth/callback.
 6. **First LinkedIn post** — Expert framing: "Why subsea cable cuts move markets before anyone knows"
+7. **Twitter scraper rate-limit retry** — lib/scrapers/twitter.ts needs exponential backoff on 429.
 
 ### ✅ Completed in Session 1 (16 May 2026)
 
@@ -205,6 +275,16 @@ Both crons require `Authorization: Bearer ${CRON_SECRET}` header. Vercel passes 
 - Landing page: live outage feed + hero + how it works + monitored routes + pricing CTA
 - Subscribe page, dashboard stub, admin page
 - Next.js 16 upgrade + TypeScript type fixes
+
+### ✅ Completed in Session 3 (23 May 2026)
+
+- Dashboard auth gate. `/api/auth/callback/route.ts` (NEW): retrieves Stripe checkout
+  session, looks up subscriber by stripe_customer_id, sets httpOnly `cablealert_sub`
+  cookie (30 days), handles webhook race condition with pending state + meta-refresh.
+  `lib/payments.ts`: added `getCheckoutSession()`, updated success_url to point to
+  `/api/auth/callback`. `lib/db.ts`: added `getSubscriberById()`. `app/dashboard/page.tsx`:
+  full auth gate, Telegram form wired to `updateSubscriberTelegramId`, subscriber email +
+  live status badge. Commit: `7be7631`
 
 ### ✅ Completed in Session 2 (17 May 2026)
 
