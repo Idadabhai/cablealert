@@ -15,7 +15,7 @@ latency-sensitive trading desks, HFT infrastructure teams, and CDN operators. A 
 pipeline polls NOC feeds, SubTel Forum, ThousandEyes, and Twitter every 15 minutes.
 Claude classifies each event by severity and affected route. Subscribers receive Telegram
 push alerts and daily email digests — typically 15 minutes ahead of Twitter. Revenue via
-Stripe subscription at £50/month. Stack: Next.js 16.2.6 App Router, Supabase, Claude
+Stripe subscription at £50/month. Stack: Next.js 16.2.6 App Router, Neon (serverless Postgres), Claude
 claude-sonnet-4-20250514, Stripe, Resend, Telegram Bot API.
 
 ---
@@ -50,7 +50,7 @@ This is not a news scraper. It is expert-framed intelligence. That framing is th
 | Layer | Tech |
 |---|---|
 | Framework | Next.js 16.2.6 App Router, TypeScript strict |
-| Database | Supabase (Postgres + RLS + Auth) |
+| Database | **Neon** (serverless Postgres — `@neondatabase/serverless`, `DATABASE_URL`) |
 | AI | Claude claude-sonnet-4-20250514 via `lib/ai.ts` |
 | Alerts | Telegram Bot API via `lib/telegram.ts` |
 | Email | Resend via `lib/email.ts` — daily digest + critical alerts |
@@ -95,7 +95,7 @@ app/admin/page.tsx     — Admin: manual event injection, subscriber list
 
 ---
 
-## Supabase Tables
+## Database Tables (Neon — plain Postgres, no RLS)
 
 | Table | Purpose |
 |---|---|
@@ -112,10 +112,8 @@ RLS: service_role bypass policy on all tables. Client reads restricted to authen
 ## Environment Variables
 
 ```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+# Database (Neon)
+DATABASE_URL=
 
 # App
 NEXT_PUBLIC_APP_URL=https://cablealert.io
