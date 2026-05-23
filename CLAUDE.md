@@ -231,7 +231,7 @@ Networks) when confirmed — this signals repair timeline to trading subscribers
 | Issue | Status |
 |---|---|
 | No GitHub remote configured | Needs user to create repo at github.com → `git remote add origin` |
-| Admin page has no auth gate | Add `ADMIN_SECRET` env check before rendering admin content |
+| Admin page has no auth gate | DONE — `?key=ADMIN_SECRET` query param check already in place |
 | Scraper error handling | DONE (Session 4) — 3-attempt backoff on 429 (5s/15s/60s), Bearer Token support added |
 | Dashboard subscriber auth | DONE (Session 3) — cookie-based, /api/auth/callback route |
 
