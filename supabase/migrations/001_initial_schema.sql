@@ -1,120 +1,127 @@
--- CableAlert — Initial Schema
--- Run in Supabase SQL Editor (or via Supabase CLI: supabase db push)
+-- CableAlert — Neon Postgres schema
+-- Run via Neon SQL editor: paste entire file and execute.
+-- No RLS — all queries are server-side only (lib/db.ts).
 
--- ── Extensions ──────────────────────────────────────────────
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- ── Extensions ─────────────────────────────────────────────────────────────
 
--- ── Subscribers ──────────────────────────────────────────────
-CREATE TABLE public.subscribers (
-  id                      UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  email                   TEXT UNIQUE NOT NULL,
-  stripe_customer_id      TEXT UNIQUE,
-  stripe_subscription_id  TEXT UNIQUE,
-  telegram_chat_id        TEXT UNIQUE,
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ── Subscribers ────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS subscribers (
+  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email                   TEXT NOT NULL,
+  stripe_customer_id      TEXT,
+  stripe_subscription_id  TEXT,
+  telegram_chat_id        TEXT,
   status                  TEXT NOT NULL DEFAULT 'active'
-                          CHECK (status IN ('active', 'past_due', 'cancelled', 'trialling')),
-  routes_filter           TEXT[] DEFAULT NULL,
+                            CHECK (status IN ('active','past_due','cancelled','trialling')),
+  routes_filter           JSONB,              -- null = all routes; array of route strings
   min_severity            TEXT NOT NULL DEFAULT 'high'
-                          CHECK (min_severity IN ('critical', 'high', 'medium', 'low', 'resolved', 'noise')),
-  created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at              TIMESTAMPTZ,
+                            CHECK (min_severity IN ('critical','high','medium','low','resolved','noise')),
   cancelled_at            TIMESTAMPTZ,
-  deleted_at              TIMESTAMPTZ
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ,
+  deleted_at              TIMESTAMPTZ,
+  CONSTRAINT subscribers_email_key UNIQUE (email)
 );
 
-ALTER TABLE public.subscribers ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_subscribers_status     ON subscribers (status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_subscribers_stripe_cid ON subscribers (stripe_customer_id) WHERE stripe_customer_id IS NOT NULL;
 
--- Service role bypasses RLS (API routes use service role key)
-CREATE POLICY "service_role_bypass" ON public.subscribers
-  USING (auth.role() = 'service_role');
+-- ── Outage Events ───────────────────────────────────────────────────────────
 
--- ── Outage Events ────────────────────────────────────────────
-CREATE TABLE public.outage_events (
-  id                          UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  cable_name                  TEXT,
-  affected_routes             TEXT[] NOT NULL DEFAULT '{}',
-  severity                    TEXT NOT NULL DEFAULT 'noise'
-                              CHECK (severity IN ('critical', 'high', 'medium', 'low', 'resolved', 'noise')),
-  summary                     TEXT NOT NULL,
-  raw_text                    TEXT,
-  source_url                  TEXT UNIQUE NOT NULL,
-  source_name                 TEXT NOT NULL,
-  estimated_latency_impact_ms INT,
-  confidence                  NUMERIC(3, 2) NOT NULL DEFAULT 0,
-  x_post_url                  TEXT,
-  alert_sent                  BOOLEAN NOT NULL DEFAULT false,
-  created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at                  TIMESTAMPTZ,
-  deleted_at                  TIMESTAMPTZ
+CREATE TABLE IF NOT EXISTS outage_events (
+  id                           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cable_name                   TEXT,
+  affected_routes              JSONB NOT NULL DEFAULT '[]',
+  severity                     TEXT NOT NULL DEFAULT 'noise'
+                                 CHECK (severity IN ('critical','high','medium','low','resolved','noise')),
+  summary                      TEXT NOT NULL,
+  raw_text                     TEXT,
+  source_url                   TEXT,
+  source_name                  TEXT NOT NULL,
+  estimated_latency_impact_ms  INT,
+  confidence                   NUMERIC(3,2) NOT NULL DEFAULT 0,
+  x_post_url                   TEXT,
+  alert_sent                   BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at                   TIMESTAMPTZ,
+  deleted_at                   TIMESTAMPTZ
 );
 
-ALTER TABLE public.outage_events ENABLE ROW LEVEL SECURITY;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_outage_events_source_url ON outage_events (source_url) WHERE source_url IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_outage_events_severity   ON outage_events (severity);
+CREATE INDEX IF NOT EXISTS idx_outage_events_created_at ON outage_events (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_outage_events_deleted_at ON outage_events (deleted_at) WHERE deleted_at IS NULL;
 
--- Public read access to non-deleted, non-noise events (for landing page feed)
-CREATE POLICY "public_read_outages" ON public.outage_events
-  FOR SELECT USING (deleted_at IS NULL AND severity != 'noise');
+-- ── Alert Deliveries ────────────────────────────────────────────────────────
 
-CREATE POLICY "service_role_bypass" ON public.outage_events
-  USING (auth.role() = 'service_role');
-
-CREATE INDEX idx_outage_events_source_url ON public.outage_events(source_url);
-CREATE INDEX idx_outage_events_severity ON public.outage_events(severity);
-CREATE INDEX idx_outage_events_created_at ON public.outage_events(created_at DESC);
-
--- ── Alert Deliveries ─────────────────────────────────────────
-CREATE TABLE public.alert_deliveries (
-  id                    UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  subscriber_id         UUID NOT NULL REFERENCES public.subscribers(id),
-  event_id              UUID REFERENCES public.outage_events(id),
-  admin_alert_id        UUID,
-  channel               TEXT NOT NULL CHECK (channel IN ('telegram', 'email')),
-  status                TEXT NOT NULL DEFAULT 'pending'
-                        CHECK (status IN ('sent', 'failed', 'pending')),
-  telegram_message_id   TEXT,
-  error_message         TEXT,
-  is_digest             BOOLEAN NOT NULL DEFAULT false,
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS alert_deliveries (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subscriber_id        UUID NOT NULL REFERENCES subscribers (id) ON DELETE CASCADE,
+  event_id             UUID REFERENCES outage_events (id) ON DELETE SET NULL,
+  admin_alert_id       UUID,
+  channel              TEXT NOT NULL CHECK (channel IN ('telegram','email')),
+  status               TEXT NOT NULL DEFAULT 'pending'
+                         CHECK (status IN ('sent','failed','pending')),
+  telegram_message_id  TEXT,
+  error_message        TEXT,
+  is_digest            BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.alert_deliveries ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_alert_deliveries_subscriber ON alert_deliveries (subscriber_id);
+CREATE INDEX IF NOT EXISTS idx_alert_deliveries_event      ON alert_deliveries (event_id);
+CREATE INDEX IF NOT EXISTS idx_alert_deliveries_created_at ON alert_deliveries (created_at DESC);
 
-CREATE POLICY "service_role_bypass" ON public.alert_deliveries
-  USING (auth.role() = 'service_role');
+-- ── Scrape Logs ─────────────────────────────────────────────────────────────
 
-CREATE INDEX idx_alert_deliveries_subscriber ON public.alert_deliveries(subscriber_id);
-CREATE INDEX idx_alert_deliveries_created ON public.alert_deliveries(created_at DESC);
-
--- ── Scrape Logs ──────────────────────────────────────────────
-CREATE TABLE public.scrape_logs (
-  id              UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  source_name     TEXT NOT NULL,
-  status          TEXT NOT NULL CHECK (status IN ('success', 'error', 'partial')),
-  items_found     INT NOT NULL DEFAULT 0,
-  items_new       INT NOT NULL DEFAULT 0,
-  duration_ms     INT NOT NULL DEFAULT 0,
-  error_message   TEXT,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS scrape_logs (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_name    TEXT NOT NULL,
+  status         TEXT NOT NULL CHECK (status IN ('success','error','partial')),
+  items_found    INT NOT NULL DEFAULT 0,
+  items_new      INT NOT NULL DEFAULT 0,
+  duration_ms    INT,
+  error_message  TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.scrape_logs ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_scrape_logs_created_at ON scrape_logs (created_at DESC);
 
-CREATE POLICY "service_role_bypass" ON public.scrape_logs
-  USING (auth.role() = 'service_role');
+-- ── Admin Alerts ─────────────────────────────────────────────────────────────
 
-CREATE INDEX idx_scrape_logs_created ON public.scrape_logs(created_at DESC);
-
--- ── Admin Alerts ─────────────────────────────────────────────
-CREATE TABLE public.admin_alerts (
-  id                    UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  cable_name            TEXT NOT NULL,
-  affected_routes       TEXT[] NOT NULL DEFAULT '{}',
-  severity              TEXT NOT NULL CHECK (severity IN ('critical', 'high', 'medium', 'low', 'resolved', 'noise')),
-  message               TEXT NOT NULL,
-  subscribers_reached   INT NOT NULL DEFAULT 0,
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS admin_alerts (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cable_name          TEXT,
+  affected_routes     JSONB NOT NULL DEFAULT '[]',
+  severity            TEXT NOT NULL
+                        CHECK (severity IN ('critical','high','medium','low','resolved','noise')),
+  message             TEXT NOT NULL,
+  subscribers_reached INT NOT NULL DEFAULT 0,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.admin_alerts ENABLE ROW LEVEL SECURITY;
+-- Add FK from alert_deliveries to admin_alerts now that admin_alerts exists
+ALTER TABLE alert_deliveries
+  ADD CONSTRAINT fk_alert_deliveries_admin_alert
+  FOREIGN KEY (admin_alert_id) REFERENCES admin_alerts (id) ON DELETE SET NULL;
 
-CREATE POLICY "service_role_bypass" ON public.admin_alerts
-  USING (auth.role() = 'service_role');
+-- ── Updated-at trigger ──────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_subscribers_updated_at
+  BEFORE UPDATE ON subscribers
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE OR REPLACE TRIGGER trg_outage_events_updated_at
+  BEFORE UPDATE ON outage_events
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
