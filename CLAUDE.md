@@ -137,6 +137,9 @@ TELEGRAM_WEBHOOK_SECRET=
 # Twitter/X
 TWITTER_BEARER_TOKEN=
 
+# Admin
+ADMIN_SECRET=
+
 # Cron auth
 CRON_SECRET=
 ```
@@ -252,6 +255,12 @@ Networks) when confirmed — this signals repair timeline to trading subscribers
 
 ## Session queue
 
+### ✅ Completed in cross-portfolio session (23 May 2026) — Neon schema rewrite
+
+- `supabase/migrations/001_initial_schema.sql` — fully rewritten from Supabase (public. prefix, RLS, uuid-ossp, TEXT[] arrays) to Neon (no prefix, no RLS, pgcrypto, JSONB for routes_filter/affected_routes, deferred FK from alert_deliveries → admin_alerts, updated_at triggers). Commit: `9c91a77`
+- `lib/db.ts` — fully rewritten from Supabase client to `@neondatabase/serverless` tagged SQL. All 15 functions preserved. Commit: `d2fc8da`
+- `package.json` — added `@neondatabase/serverless`, removed `@supabase/supabase-js` + `@supabase/auth-helpers-nextjs`. Commit: `d2fc8da`
+
 ### Next session priorities
 
 1. **Deploy to Vercel** — User to create GitHub repo + push. Then connect to Vercel. Set all env vars.
@@ -265,7 +274,7 @@ Networks) when confirmed — this signals repair timeline to trading subscribers
 ### ✅ Completed in Session 1 (16 May 2026)
 
 - Full Next.js 16.2.6 App Router scaffold
-- Supabase schema (5 tables, RLS, migrations)
+- Initial schema scaffold (5 tables — later rewritten to Neon, see cross-portfolio session below)
 - All service libraries (db, ai, telegram, email, payments)
 - All scrapers (SubTel Forum, ThousandEyes, Twitter API)
 - Cron handlers (15-min scrape, 7am digest)
