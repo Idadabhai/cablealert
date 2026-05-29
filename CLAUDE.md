@@ -253,6 +253,46 @@ Networks) when confirmed — this signals repair timeline to trading subscribers
 
 ---
 
+## Product Roadmap
+
+### Phase 1 — Consumer/Prosumer Subscription (NOW)
+Telegram push alerts + daily email digest at £50/month. Target: individual traders and small desks. Gate: ship and get first paying subscriber.
+
+### Phase 2 — Webhook Delivery Option (gate: 10+ subscribers, proven scraper accuracy)
+Add `webhook_url` column to `subscribers` table. When an alert fires, POST the same JSON payload to the subscriber's endpoint alongside the Telegram push. Target: trading desk infrastructure teams who want programmatic integration. Price: £200–500/month. Build effort: ~2-hour Claude Code session — it's just another output channel in the existing scrape pipeline.
+
+### Phase 3 — Enterprise API/Webhook Product (gate: 6+ months track record, proven event detection)
+
+**The strategic case (discussed 29 May 2026):**
+Enterprise infrastructure teams (SD-WAN providers, global CDN operators, HFT engineering desks) don't want to read a Telegram message — they want their routing tables to update automatically when a Red Sea cable degrades. The right interface for that is a webhook push model: subscribe once, and the moment the scraper detects a severed line, push a clean JSON payload directly into their system. No polling. No manual monitoring.
+
+**Why this is Phase 3 not Phase 1:**
+- Enterprise buyers need a track record of events caught before they'll trust the data
+- SLA commitments require proven uptime and scraper reliability
+- Sales cycle is longer — SD-WAN/CDN procurement involves legal review, not LinkedIn DMs
+- Price point: $1,000–$5,000/month retainer vs £50/month subscription
+
+**What to build:**
+- REST API with API key auth (per-subscriber key)
+- Webhook registration endpoint (POST /api/v1/webhooks — register URL + event types + cable routes)
+- Webhook delivery with retry logic, HMAC signature verification, dead letter queue
+- API docs (OpenAPI spec)
+- Event history endpoint (GET /api/v1/events — last 90 days, filterable by route/severity)
+- Usage dashboard showing events received, delivery success rate
+
+**Target buyers for Phase 3:**
+- SD-WAN providers (Aryaka, Cato Networks, Cloudflare Magic WAN)
+- Global CDN operators (Fastly, Cloudflare, Akamai — network engineering teams)
+- HFT prop trading firms (infrastructure/network engineering desks, not traders)
+- Submarine cable insurers and reinsurers (Lloyd's syndicates)
+
+**Pricing model for Phase 3:**
+- Starter API: $500/month — up to 3 webhook endpoints, all routes
+- Professional API: $2,000/month — unlimited endpoints, priority delivery SLA, event history API
+- Enterprise: custom retainer, dedicated support, custom route coverage
+
+---
+
 ## Session queue
 
 ### ✅ Completed in cross-portfolio session (23 May 2026) — Neon schema rewrite
@@ -261,15 +301,28 @@ Networks) when confirmed — this signals repair timeline to trading subscribers
 - `lib/db.ts` — fully rewritten from Supabase client to `@neondatabase/serverless` tagged SQL. All 15 functions preserved. Commit: `d2fc8da`
 - `package.json` — added `@neondatabase/serverless`, removed `@supabase/supabase-js` + `@supabase/auth-helpers-nextjs`. Commit: `d2fc8da`
 
+### ✅ Completed in Launch Session (29 May 2026) — Infrastructure setup
+
+- GitHub repo created: `https://github.com/Idadabhai/cablealert`
+- Neon DB provisioned (EU West 2 London). Schema run — all 5 tables live.
+- Stripe: new separate account created for CableAlert (isolated from NaqlaHub). CableAlert Pro product created (£50/month GBP, SaaS business use, Managed Payments enabled). USD variant ($65/month) to add next session.
+- Telegram bot created via @BotFather. Token set.
+- Random secrets generated: ADMIN_SECRET, CRON_SECRET, TELEGRAM_WEBHOOK_SECRET.
+- Fixed: duplicate `next.config.ts` removed. `serverActions.allowedOrigins` updated to include `cablealert.io` and `*.vercel.app` — was blocking Server Actions (Stripe checkout) in production.
+- Vercel: project created, GitHub connected, env vars set. Deployment blocked by Vercel Hobby cron limitation (`*/15` requires Pro). Upgrade to Vercel Pro required before deploy.
+
 ### Next session priorities
 
-1. **Deploy to Vercel** — User to create GitHub repo + push. Then connect to Vercel. Set all env vars.
-2. **Stripe product setup** — Create £50/month price in Stripe dashboard. Set `NEXT_PUBLIC_STRIPE_PRICE_ID`.
-3. **Telegram bot** — Create bot via @BotFather. Set `TELEGRAM_BOT_TOKEN`. Set webhook URL.
-4. **Twitter API** — Apply for v2 Basic tier (~$100/month). Set `TWITTER_BEARER_TOKEN`.
-5. ~~Dashboard auth~~ — DONE (Session 3). httpOnly cookie via /api/auth/callback.
-6. **First LinkedIn post** — Expert framing: "Why subsea cable cuts move markets before anyone knows"
-7. ~~Twitter scraper rate-limit retry~~ — DONE (Session 4). 3-attempt backoff, Bearer Token support.
+1. **Upgrade Vercel to Pro** — enables 15-minute cron interval. Required before deployment succeeds.
+2. **Redeploy** — push empty commit or trigger from Vercel dashboard after Pro upgrade.
+3. **Add USD pricing** — add $65/month USD variant to CableAlert Pro product in Stripe. Add `price_usd_xxx` handling to subscribe page.
+4. **Set Stripe webhook** — Stripe Dashboard → Webhooks → add `https://cablealert.io/api/webhooks/stripe` → copy signing secret → add `STRIPE_WEBHOOK_SECRET` to Vercel env vars.
+5. **Set Telegram webhook** — POST to `https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://cablealert.io/api/webhooks/telegram&secret_token={TELEGRAM_WEBHOOK_SECRET}`
+6. **Add cablealert.io domain** — Vercel → Domains → add custom domain → update DNS.
+7. **Create OG image** — 1200×630px dark theme, red accent, cable route visual. Drop in `public/og-image.png`.
+8. **End-to-end test** — trigger scrape cron manually → verify DB insert → test subscribe flow → check dashboard auth → verify email digest.
+9. **Twitter API** — optional for V1. Apply for v2 Basic (~$100/month) if budget allows.
+10. **First LinkedIn post** — "Why subsea cable cuts move markets before anyone knows" — founder expertise angle.
 
 ### ✅ Completed in Session 1 (16 May 2026)
 
